@@ -1,4 +1,5 @@
 /moc_*.cpp
+/*.o
 /Makefile
 /softscope
 /testsource
