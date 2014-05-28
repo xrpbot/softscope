@@ -2,6 +2,7 @@
 #define SSCOPE_RAWDATAREADER_H
 
 #include <QFile>
+#include "HeaderReader.h"
 
 class RawDataReader {
   public:
@@ -12,7 +13,12 @@ class RawDataReader {
         { bool ret = fHadReset; fHadReset = false; return ret; }
     void reset(int bufsize = -1);
     bool readAll();
-    char* atRaw(int t);
+    const char* atRaw(int t) const;
+    
+    void readHeader();
+    const HeaderReader& header() const { return fHeaderReader; }
+    
+    virtual void processData(size_t, size_t) {}
     
   private:
     int do_read(char* buf, int len);
@@ -26,6 +32,8 @@ class RawDataReader {
     int fHead;       // id of newest available chunk
     bool fHadEOF;    // true after end-of-file (read() returns 0)
     bool fHadReset;  // true after new data stream has begun
+    
+    HeaderReader fHeaderReader;
 };
 
 #endif

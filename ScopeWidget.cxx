@@ -20,7 +20,40 @@ ScopeWidget::ScopeWidget(const char* sourcename, QWidget* parent, int tperdiv)
     connect(fTimer, SIGNAL(timeout()), this, SLOT(timestep()));
     fTimer->start(UPDATE_INTERVAL);
     
+    setMouseTracking(true);
+    fCursorEnabled = true;
+    fDrawCursor = false;
+    
     fLastHead = 0;
+}
+
+void ScopeWidget::mouseMoveEvent(QMouseEvent* ev)
+{
+    //std::cout << "mouseMoveEvent, pos = " << ev->pos().x() << ", " << ev->pos().y() << std::endl;
+    //std::cout << x2t(fCursorXPos) << std::endl;
+    //std::cout << fCursorXPos << " " << t2x(x2t(fCursorXPos)) << std::endl;
+    //std::cout << fReader.at(ceil(x2t(fCursorXPos) - 0.5), 0) << std::endl;
+    if(fCursorXPos != ev->pos().x()) {
+        fCursorXPos = ev->pos().x();
+        emit cursorMoved();
+        update(); // FIXME
+    }
+}
+
+void ScopeWidget::enterEvent(QEvent*)
+{
+    fDrawCursor = true;
+}
+
+void ScopeWidget::leaveEvent(QEvent*)
+{
+    fDrawCursor = false;
+}
+
+void ScopeWidget::setCursorEnabled(bool enable)
+{
+    fCursorEnabled = enable;
+    update();
 }
 
 void ScopeWidget::setRunning(bool running)
@@ -135,29 +168,44 @@ void ScopeWidget::redrawDisplay()
     fLastHead = head;
 }
 
-float ScopeWidget::u2y(float u, float u_per_div, float offset)
+float ScopeWidget::u2y(float u, float u_per_div, float offset) const
 {
     int h = size().height();
     return -(u+offset) * ((float) (h-5)/(10*u_per_div)) + (h-1)/2.;
 }
 
-float ScopeWidget::t2x(int t)
+float ScopeWidget::t2x(int t) const
 {
     int w = size().width();
     t %= ticsPerScreen();
     return ((float)t * ((float) (w-5)/ticsPerScreen())) + 2;
 }
 
+int ScopeWidget::x2t(float x) const
+{
+    int w = size().width();
+    
+    int t_offset = (fLastHead / ticsPerScreen()) * ticsPerScreen();
+    int t = ceil((x-2.) * ((float) ticsPerScreen())/((float)(w - 5)) - 0.5);
+    
+    if(t > (fLastHead % ticsPerScreen()))
+        t_offset -= ticsPerScreen();
+    
+    return t + t_offset;
+}
+
 void ScopeWidget::updateDisplay()
 {
     int head = fReader.head();
     
-    if(fReader.checkAndClearReset())
+    if(fReader.checkAndClearReset()) {
         redrawDisplay();
-    else if(head <= fLastHead)
+        emit headerChanged();
+    } else if(head <= fLastHead) {
         return;
-    else if((head - fLastHead) >= ticsPerScreen())
+    } else if((head - fLastHead) >= ticsPerScreen()) {
         redrawDisplay();
+    }
     
     QPainter painter(&fDisplayPixmap);
     int w = size().width();
@@ -192,6 +240,7 @@ void ScopeWidget::timestep()
 {
     fReader.readAll();
     update();
+    emit newData();
 }
 
 void ScopeWidget::paintEvent(QPaintEvent*)
@@ -199,6 +248,22 @@ void ScopeWidget::paintEvent(QPaintEvent*)
     QPainter painter(this);
     updateDisplay();
     painter.drawPixmap(QPoint(0, 0), fDisplayPixmap);
+    
+    if(fCursorEnabled && fDrawCursor) {
+        painter.setPen(QPen(Qt::white, 1));
+        painter.drawLine(fCursorXPos, 0, fCursorXPos, height());
+        
+        painter.setRenderHint(QPainter::Antialiasing, true);
+        painter.setPen(Qt::NoPen);
+        for(size_t ch=0; ch<N_CHANNELS; ch++) {
+            float u_per_div = fChannels[ch].uPerDiv();
+            float offset = fChannels[ch].offset();
+            float y = u2y(fReader.at(x2t(fCursorXPos), ch), u_per_div, offset);
+            
+            painter.setBrush(QBrush(fChannels[ch].color()));
+            painter.drawEllipse(QPointF(fCursorXPos, y), 3., 3.);
+        }
+    }
 }
 
 QSize ScopeWidget::minimumSizeHint() const

@@ -4,14 +4,44 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <math.h>
+#include <stdint.h>
+#include <string.h>
 
-int main()
+const uint32_t SSCOPE_HEADER_MAGIC = 0x7FD85250;
+const uint32_t SSCOPE_HEADER_VERSION = 0x00000001;
+
+const char* CHANNEL_NAMES[] = { "Sine, 10k, 1/10 rad/div, Füü",
+                                "Sine, 5k, 1/8 rad/div",
+                                "Sine, 14k, 1/15 rad/div",
+                                "Sine, 8k, 1/25 rad/div" };
+
+int main(int argc, char** argv)
 {
     int fd;
     fd = open("softscope.fifo", O_WRONLY);
     if(fd < 0) {
         perror("Open softscope.fifo");
         return -1;
+    }
+    
+    if(argc > 1) {
+        if(write(fd, &SSCOPE_HEADER_MAGIC, sizeof(SSCOPE_HEADER_MAGIC)) != sizeof(SSCOPE_HEADER_MAGIC)) {
+            perror("Write header");
+        }
+        
+        if(write(fd, &SSCOPE_HEADER_VERSION, sizeof(SSCOPE_HEADER_VERSION)) != sizeof(SSCOPE_HEADER_VERSION)) {
+            perror("Write header");
+        }
+        
+        for(size_t i=0; i<4; i++) {
+            uint8_t len = strlen(CHANNEL_NAMES[i]);
+            if(write(fd, &len, sizeof(len)) != sizeof(len)) {
+                perror("Write header");
+            }
+            if(write(fd, CHANNEL_NAMES[i], len) != len) {
+                perror("Write header");
+            }
+        }
     }
     
     float data[4];

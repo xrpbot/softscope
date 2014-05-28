@@ -12,15 +12,15 @@ class DataReader : public RawDataReader
           fNChannels(channels)
         {}
     
-    T at(int t, int ch)
+    T at(int t, int ch) const
     {
         if(ch < 0 || ch >= fNChannels) return 0;
-        char* p = atRaw(t);
+        const char* p = atRaw(t);
         if(!p) return 0;
         return ((T*)p)[ch];
     }
   
-  private:
+  protected:
     int fNChannels;
 };
 

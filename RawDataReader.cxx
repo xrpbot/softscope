@@ -5,6 +5,10 @@
 #include <sys/select.h>
 #include <fcntl.h>
 
+#include <stdio.h>
+#include <stdint.h>
+#include <assert.h>
+
 RawDataReader::RawDataReader(const char* fname, int bufsize, int chunksize)
 {
     // Note that read() may read incomplete chunks. We make the buffer one
@@ -20,6 +24,8 @@ RawDataReader::RawDataReader(const char* fname, int bufsize, int chunksize)
     fFd = open(fname, O_RDONLY | O_NONBLOCK);
     if(fFd < 0)
         perror("open()");
+    
+    fHadEOF = true;
 }
 
 RawDataReader::~RawDataReader()
@@ -69,6 +75,7 @@ int RawDataReader::do_read(char* buf, int len)
         return -1;
     } else if(res == 0) {
         fHadEOF = true;
+        fHeaderReader.reset();
     }
     
     return res;
@@ -77,6 +84,17 @@ int RawDataReader::do_read(char* buf, int len)
 bool RawDataReader::readAll()
 {
     int n_read = 0;
+    
+    if(fHadEOF && !fHeaderReader.finished()) {
+        fHeaderReader.readAll(fFd);
+        return false;
+    }
+    
+    if(fHadEOF && fHeaderReader.finished() && fHeaderReader.leftoverData() > 0) {
+        assert(fBufsize > fHeaderReader.leftoverData());
+        memcpy(fBuf, fHeaderReader.data(), fHeaderReader.leftoverData());
+        fBufPos = fHeaderReader.leftoverData();
+    }
     
     while(1) {
         n_read = do_read(&fBuf[fBufPos], fBufsize - fBufPos);
@@ -89,9 +107,12 @@ bool RawDataReader::readAll()
             fHadReset = true;
             fHadEOF = false;
         }
-        fHead += (n_read + fBufPos % fChunksize) / fChunksize;
+        int n_new_chunks = (n_read + fBufPos % fChunksize) / fChunksize;
+        fHead += n_new_chunks;
         fBufPos += n_read;
         fBufPos %= fBufsize;
+        
+        processData(fHead, n_new_chunks);
     }
     if(fHadEOF) {
         // end of file, start anew when next data arrives
@@ -101,7 +122,7 @@ bool RawDataReader::readAll()
     return (n_read >= 0);
 }
 
-char* RawDataReader::atRaw(int t)
+const char* RawDataReader::atRaw(int t) const
 {
     if(t > fHead || t <= (fHead - fNChunks + 1) || t < 0)
         return NULL;
