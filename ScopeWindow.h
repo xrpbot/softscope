@@ -9,6 +9,7 @@
 #include <QComboBox>
 #include <QSpinBox>
 #include <QLabel>
+#include "ElidedLabel.h"
 #include "ScopeWidget.h"
 
 class ScopeWindow : public QWidget
@@ -29,6 +30,8 @@ class ScopeWindow : public QWidget
     void channelNamesChanged();
     void channelAvgChanged();
     void channelCurValueChanged();
+    
+    void setCursorEnabled(bool enable);
   
   private:
     void makeChannelCfg(QGridLayout* l, int ch, QSignalMapper* enableMapper, QSignalMapper *scaleMapper, QSignalMapper* offsetMapper, QSignalMapper* avgTimeMapper);
@@ -44,7 +47,7 @@ class ScopeWindow : public QWidget
     QCheckBox* fEnableWidgets[ScopeWidget::N_CHANNELS];
     QComboBox* fScaleWidgets[ScopeWidget::N_CHANNELS];
     QSpinBox* fOffsetWidgets[ScopeWidget::N_CHANNELS];
-    QLabel* fChNameWidgets[ScopeWidget::N_CHANNELS];
+    ElidedLabel* fChNameWidgets[ScopeWidget::N_CHANNELS];
     QLabel* fChAvgWidgets[ScopeWidget::N_CHANNELS];
     QLabel* fChCurWidgets[ScopeWidget::N_CHANNELS];
     QPushButton* fRunPauseButton;

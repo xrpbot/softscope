@@ -56,7 +56,7 @@ ScopeWindow::ScopeWindow(const char* sourcename)
     cursorAct->setShortcut(QString("F10"));
     cursorAct->setCheckable(true);
     cursorAct->setChecked(true);
-    connect(cursorAct, SIGNAL(toggled(bool)), fScopeWidget, SLOT(setCursorEnabled(bool)));
+    connect(cursorAct, SIGNAL(toggled(bool)), this, SLOT(setCursorEnabled(bool)));
     fScopeWidget->addAction(cursorAct);
     
     QAction* sep = new QAction(this);
@@ -96,6 +96,14 @@ void ScopeWindow::timeScaleChanged()
     int scale = T_PER_DIV_CHOICES[scale_idx];
     
     fScopeWidget->setTicsPerDiv(scale);
+}
+
+void ScopeWindow::setCursorEnabled(bool enable)
+{
+    for(size_t ch=0; ch<ScopeWidget::N_CHANNELS; ch++) {
+        fChCurWidgets[ch]->setVisible(enable);
+    }
+    fScopeWidget->setCursorEnabled(enable);
 }
 
 void ScopeWindow::channelEnableChanged(int ch)
@@ -159,7 +167,7 @@ void ScopeWindow::channelCurValueChanged()
 
 void ScopeWindow::makeChannelCfg(QGridLayout* l, int ch, QSignalMapper* enableMapper, QSignalMapper *scaleMapper, QSignalMapper* offsetMapper, QSignalMapper* avgTimeMapper)
 {
-    QLabel* bar = new QLabel();
+    ElidedLabel* bar = new ElidedLabel();
     QPalette p;
     p.setColor(QPalette::Background, fScopeWidget->channel(ch)->color());
     bar->setAutoFillBackground(true);
@@ -196,12 +204,12 @@ void ScopeWindow::makeChannelCfg(QGridLayout* l, int ch, QSignalMapper* enableMa
     QHBoxLayout* l0 = new QHBoxLayout;
     
     QLabel* cur = new QLabel("---");
-    cur->setAlignment(Qt::AlignRight);
+    cur->setAlignment(Qt::AlignLeft);
     fChCurWidgets[ch] = cur;
-    l0->addWidget(cur);
+    // l0->addWidget(cur);
     
     QLabel* avg = new QLabel("---");
-    avg->setAlignment(Qt::AlignRight);
+    avg->setAlignment(Qt::AlignLeft);
     fChAvgWidgets[ch] = avg;
     l0->addWidget(avg);
     
@@ -228,6 +236,7 @@ void ScopeWindow::makeChannelCfg(QGridLayout* l, int ch, QSignalMapper* enableMa
     l->addWidget(scale, 2, ch);
     l->addWidget(offset, 3, ch);
     l->addLayout(l0, 4, ch);
+    l->addWidget(cur, 5, ch);
 }
 
 void ScopeWindow::makeTimeCfg(QGridLayout* l, int col)
