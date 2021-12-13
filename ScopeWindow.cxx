@@ -30,9 +30,9 @@ ScopeWindow::ScopeWindow(const char* sourcename)
     for(int ch=0; ch < ScopeWidget::N_CHANNELS; ch++) {
         makeChannelCfg(l1, ch, enableMapper, scaleMapper, offsetMapper);
     }
-    connect(enableMapper, SIGNAL(mapped(int)), this, SLOT(channelEnableChanged(int)));
-    connect(scaleMapper, SIGNAL(mapped(int)), this, SLOT(channelScaleChanged(int)));
-    connect(offsetMapper, SIGNAL(mapped(int)), this, SLOT(channelOffsetChanged(int)));
+    connect(enableMapper, SIGNAL(mappedInt(int)), this, SLOT(channelEnableChanged(int)));
+    connect(scaleMapper, SIGNAL(mappedInt(int)), this, SLOT(channelScaleChanged(int)));
+    connect(offsetMapper, SIGNAL(mappedInt(int)), this, SLOT(channelOffsetChanged(int)));
     
     l1->setColumnMinimumWidth(fScopeWidget->N_CHANNELS, 40);
     makeTimeCfg(l1, fScopeWidget->N_CHANNELS + 1);
@@ -97,7 +97,7 @@ void ScopeWindow::makeChannelCfg(QGridLayout* l, int ch, QSignalMapper* enableMa
 {
     QWidget* bar = new QWidget();
     QPalette p;
-    p.setColor(QPalette::Background, fScopeWidget->channel(ch)->color());
+    p.setColor(QPalette::Window, fScopeWidget->channel(ch)->color());
     bar->setAutoFillBackground(true);
     bar->setPalette(p);
     bar->setFixedHeight(8);
@@ -138,7 +138,7 @@ void ScopeWindow::makeTimeCfg(QGridLayout* l, int col)
 {
     QWidget* bar = new QWidget();
     QPalette p;
-    p.setColor(QPalette::Background, Qt::white);
+    p.setColor(QPalette::Window, Qt::white);
     bar->setAutoFillBackground(true);
     bar->setPalette(p);
     bar->setFixedHeight(8);
